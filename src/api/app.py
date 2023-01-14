@@ -40,7 +40,7 @@ def Signup() -> str:
         
 
         # insert the data into the database
-        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (uuid, username, email, password))
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)", (uuid, username, email, password, None, None))
         conn.commit()
         conn.close()
         
@@ -108,6 +108,44 @@ def Login() -> str:
                         'password': password
                     }
                 })
+            
+            
+@app.route('/addpfp', methods=['POST', 'GET'])
+def AddPfp() -> str:
+    # sample url: http://localhost:8080/addpfp?uuid=30863&url=https://google.com
+    
+    # get the data from the url query
+    uuid = request.args.get('uuid')
+    url = request.args.get('url')
+    
+    try:
+        # connect to the database
+        conn = sqlite3.connect('src/database/users.db')
+        c = conn.cursor()
+        
+        # update the data in the database
+        c.execute("UPDATE users SET Pfp = ? WHERE Uuid = ?", (url, uuid))
+        conn.commit()
+        conn.close()
+        
+        # return a json object that has status code and the data added to the database
+        return jsonify({
+            'status': 200, 
+            'info':'ok' ,'data': 
+                {
+                    'uuid': uuid, 
+                    'url': url
+                }
+            })
+    except:
+        return jsonify({
+            'status': 400, 
+            'info':'err' ,'data': 
+                {
+                    'uuid': uuid, 
+                    'url': url
+                }
+            })
         
         
 
