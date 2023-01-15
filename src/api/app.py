@@ -3,11 +3,12 @@ from flask import Flask, request, jsonify
 import sqlite3
 import os
 from random import randint as r
+from flask_cors import CORS
 
 curdir = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
-
+CORS(app)
 
 #NOTE - Status 400 means something went wrong, Status 200 means everything went well. Refer to info endpoint for more info on error 
 
