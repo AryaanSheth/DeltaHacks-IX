@@ -3,6 +3,7 @@ import sqlite3
 import os
 from random import randint as r
 from flask_cors import CORS
+import aux.OGgenC as OGgenC
 
 curdir = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,6 +29,17 @@ def ping() -> str:
 
 
 # SQLIte3 Database for users collection      
+
+@app.route('/cert', methods=['POST', 'GET'])
+def gencert() -> str:
+    name = request.args.get('name')
+    courseName = request.args.get('courseName')
+    
+    x = OGgenC.genCert(name, courseName)
+
+    return jsonify({
+        'link': x 
+        })
 
 @app.route('/createusr', methods=['POST', 'GET'])
 def Signup() -> str:
