@@ -12,6 +12,21 @@ CORS(app)
 #NOTE - Status 400 means something went wrong, Status 200 means everything went well. Refer to info endpoint for more info on error 
 
 
+# root
+@app.route('/', methods=['POST', 'GET'])
+def ping() -> str:
+    return jsonify({
+        'status': 200, 
+        'info':'ok' ,'data': 
+            {
+                'uuid': 'null', 
+                'username': 'null', 
+                'email': 'null', 
+                'password': 'null'
+            }
+        })
+
+
 # SQLIte3 Database for users collection      
 
 @app.route('/createusr', methods=['POST', 'GET'])
