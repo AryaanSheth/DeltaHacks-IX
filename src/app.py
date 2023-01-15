@@ -41,7 +41,7 @@ def Signup() -> str:
     
     try:
         # connect to the database
-        conn = sqlite3.connect('src/database/users.db')
+        conn = sqlite3.connect('users.db')
         c = conn.cursor()
         
         # check if the username already exists in the database or not
@@ -99,7 +99,7 @@ def Login() -> str:
     
     try:
         # connect to the database
-        conn = sqlite3.connect('src/database/users.db')
+        conn = sqlite3.connect('users.db')
         c = conn.cursor()
 
         # get the data from the database
@@ -141,7 +141,7 @@ def AddPfp() -> str:
     url = request.args.get('url')
     
     # connect to the database
-    conn = sqlite3.connect('src/database/users.db')
+    conn = sqlite3.connect('users.db')
     c = conn.cursor()
     
 
@@ -187,7 +187,7 @@ def AddCourse() -> str:
     course = request.args.get('course')
     
     # connect to the database
-    conn = sqlite3.connect('src/database/users.db')
+    conn = sqlite3.connect('users.db')
     c = conn.cursor()
     
     try:
@@ -269,7 +269,7 @@ def profile() -> str:
     usr = request.args.get('uuid')
     
     try:
-        conn = sqlite3.connect('src/database/users.db')
+        conn = sqlite3.connect('users.db')
         c = conn.cursor()
         
         # fetch the user's data from the database
@@ -320,7 +320,7 @@ def addcourse() -> str:
     author = request.args.get('author')
     rating = request.args.get('rating')
     
-    conn=sqlite3.connect('src/database/users.db')
+    conn=sqlite3.connect('users.db')
     c=conn.cursor()
     
     c.execute("INSERT INTO courses VALUES (?, ?, ?, ?)", ((title + ","), float(price), author, int(rating)))
@@ -346,7 +346,7 @@ def getcourse() -> str:
     # returns all the courses in the database
 
     try:
-        conn=sqlite3.connect('src/database/users.db')
+        conn=sqlite3.connect('users.db')
         c=conn.cursor()
         cur = c.execute("SELECT * FROM courses").fetchall()
         conn.close()
