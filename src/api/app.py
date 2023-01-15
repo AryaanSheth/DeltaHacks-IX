@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
+import sys
+from flask import Flask, request, jsonify
 import sqlite3
 import os
 from random import randint as r
@@ -9,12 +9,14 @@ curdir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 
 
+#NOTE - Status 400 means something went wrong, Status 200 means everything went well. Refer to info endpoint for more info on error 
+
 
 # SQLIte3 Database for users collection      
 
-@app.route('/create', methods=['POST', 'GET'])
+@app.route('/createusr', methods=['POST', 'GET'])
 def Signup() -> str:
-    # sample url: http://localhost:8080/create?username=hello&email=hello&password=1234
+    # sample url: http://localhost:8080/createusr?username=hello&email=hello&password=1234
     
     # get the data from the url query
     uuid = r(1, 1000000)
@@ -30,7 +32,7 @@ def Signup() -> str:
         # check if the username already exists in the database or not
         if c.execute("SELECT * FROM users WHERE Name = ?", (username,)).fetchone() is not None:
             return jsonify({
-                'status': 402, 
+                'status': 400, 
                 'info':username + " Already Exists",
                 'data': 
                     {
@@ -59,8 +61,9 @@ def Signup() -> str:
                 }
             })
     except:
+        # just in case something goes wrong
         return jsonify({
-            'status': 401, 
+            'status': 400, 
             'info':'err' ,'data': 
                 {
                     'uuid': uuid, 
@@ -71,9 +74,9 @@ def Signup() -> str:
             })
     
 
-@app.route('/login', methods=['POST', 'GET'])
+@app.route('/loginusr', methods=['POST', 'GET'])
 def Login() -> str:
-    # sample url: http://localhost:8080/login?username=hello&password=1234
+    # sample url: http://localhost:8080/loginusr?username=hello&password=1234
     
     # get the data from the url query
     username = request.args.get('username')
@@ -101,6 +104,7 @@ def Login() -> str:
                 }
             })
     except:
+        # just in case something goes wrong
             return jsonify({
                 'status': 400, 
                 'info':'User Not Found' ,'data': 
@@ -121,90 +125,171 @@ def AddPfp() -> str:
     uuid = request.args.get('uuid')
     url = request.args.get('url')
     
+    # connect to the database
+    conn = sqlite3.connect('src/database/users.db')
+    c = conn.cursor()
+    
+
+    # check if the username already exists in the database or not
+    if c.execute("SELECT * FROM users WHERE Uuid = ?", (uuid,)).fetchone() is None:
+        return jsonify({
+            'status': 400, 
+            'info':'User Not Found',
+            'data': 
+                {
+                    'uuid': uuid, 
+                    'url': url
+                }
+            })
+    
+    # update the data in the database
+    c.execute("UPDATE users SET Pfp = ? WHERE Uuid = ?", (url, uuid))
+    conn.commit()
+    conn.close()
+    
+    # return a json object that has status code and the data added to the database
+    return jsonify({
+        'status': 200, 
+        'info':'ok' ,'data': 
+            {
+                'uuid': uuid, 
+                'url': url
+            }
+        })
+        
+
+@app.route('/addcourseusr', methods=['POST', 'GET'])
+def AddCourse() -> str:
+    # link http://localhost:8080/addcourseusr?uuid=30863&course=math
+    
+    # the users courses are stored in a string in the database where each individual course is separated by a comma
+    # "course1,course2,course3," <- this is how the courses are stored in the database
+    # To add a course we get a course query. If the users current courses is empty we can just add the course to the database followed by a comma
+    # If the user already has courses we can just add the new course to the end of the string followed by a comma and then update the database
+    # making sure that the course is not already in the database for the user
+    
+    uuid = request.args.get('uuid')
+    course = request.args.get('course')
+    
+    # connect to the database
+    conn = sqlite3.connect('src/database/users.db')
+    c = conn.cursor()
+    
     try:
-        # connect to the database
+        # search the courses table to see if an existing course has the same name as the course+"," that we are trying to add
+        if c.execute("SELECT * FROM courses WHERE Name = ?", (course + ",",)).fetchone() is None:
+            # if the course does not exist throw an error
+            return jsonify({
+                'status': 400,
+                'info': 'Course Not Found',
+                'data':
+                    {
+                        'uuid': uuid,
+                        'course': course
+                    }
+                })
+        
+        # check if the username has any courses 
+        if c.execute("SELECT * FROM users WHERE Uuid = ?", (uuid,)).fetchone()[5] is None:
+            # if the user has no courses we can just add the course to the database
+            c.execute("UPDATE users SET Courses = ? WHERE Uuid = ?", (course + ",", uuid))
+            conn.commit()
+            conn.close()
+            
+            # return a json object that has status code and the data added to the database
+            return jsonify({
+                'status': 200, 
+                'info':'ok' ,'data': 
+                    {
+                        'uuid': uuid, 
+                        'course': course
+                    }
+                })
+        else:
+            # this happens if the user already has courses
+            # check if this course is already in the database
+            if course in c.execute("SELECT * FROM users WHERE Uuid = ?", (uuid,)).fetchone()[5].split(",")[:-1]:
+                return jsonify({
+                    'status': 400, 
+                    'info':'Course Already Exists' ,'data': 
+                        {
+                            'uuid': uuid, 
+                            'course': course
+                        }
+                    })
+            else:
+                # this happens when the course is not in the database for the user we can add it to the database
+                c.execute("UPDATE users SET Courses = ? WHERE Uuid = ?", (c.execute("SELECT * FROM users WHERE Uuid = ?", (uuid,)).fetchone()[5] + course + ",", uuid))
+                
+                conn.commit()
+                conn.close()
+
+                # return a json object that has status code and the data added to the database
+                return jsonify({
+                    'status': 200,
+                    'info':'ok' ,'data':
+                        {
+                            'uuid': uuid,
+                            'course': course
+                        }
+                    })
+
+    except:
+        return jsonify({
+            'status': 400,
+            'info': 'User Not Found',
+            'data':
+                {
+                    'uuid': uuid,
+                    'course': course
+                }
+            })
+       
+@app.route('/profile', methods=['POST', 'GET'])
+def profile() -> str:
+    # link http://localhost:8080/profile?uuid=30863
+    
+    # gets the user's profile data based on the uuid and returns it as a json object
+    
+    usr = request.args.get('uuid')
+    
+    try:
         conn = sqlite3.connect('src/database/users.db')
         c = conn.cursor()
         
-        # update the data in the database
-        c.execute("UPDATE users SET Pfp = ? WHERE Uuid = ?", (url, uuid))
-        conn.commit()
-        conn.close()
+        # fetch the user's data from the database
+        data = c.execute("SELECT * FROM users WHERE Uuid = ?", (usr,)).fetchone()
+        
+        courses = data[5].split(",")[:-1]
         
         # return a json object that has status code and the data added to the database
         return jsonify({
             'status': 200, 
             'info':'ok' ,'data': 
                 {
-                    'uuid': uuid, 
-                    'url': url
+                    'uuid': data[0], 
+                    'username': data[1], 
+                    'email': data[2], 
+                    'password': data[3], 
+                    'pfp': data[4], 
+                    'courses': courses
                 }
             })
+    
     except:
+        # just in case something goes wrong
         return jsonify({
             'status': 400, 
             'info':'err' ,'data': 
                 {
-                    'uuid': uuid, 
-                    'url': url
+                    'uuid': 'null', 
+                    'username': 'null', 
+                    'email': 'null', 
+                    'password': 'null', 
+                    'pfp': 'null', 
+                    'courses': 'null'
                 }
             })
-        
-        
-
-@app.route('/addCourse', methods=['POST', 'GET'])
-def AddCourse() -> str:
-    # sample url: http://localhost:8080/addCourse?course=hello&uuid=30863
-    
-    # Since sqlite3 has no arrays we will store the courses in a string and then split it via a comma 
-    # We will fetch a course via name from the courses table and then add it to the user's courses making sure to format it correctly
-    
-    course = request.args.get('course') + ','# course in courses table
-    uuid = request.args.get('uuid') # user's uuid that will be added to the course
-    
-    conn = sqlite3.connect('src/database/users.db')
-    c = conn.cursor()
-    
-    # fetch the course title from the courses table and store it in a variable
-    cur = (c.execute("SELECT * FROM courses WHERE Name = ?", (course,)).fetchone()[0]).rstrip(",")
-    
-    # fetch all the courses from the user's courses and store it in a variable
-    usrcourses = ((c.execute("SELECT * FROM users WHERE Uuid = ?", (uuid,)).fetchone()[5]).split(","))[:-1]
-    
-    print(cur, usrcourses)
-    
-    # chcek if the course already exists in the user's courses
-    if cur in usrcourses:
-        
-        return jsonify({
-            'status': 400, 
-            'info':'Course Already Exists' ,
-            'data': 
-                {
-                    'uuid': uuid, 
-                    'course': course
-                }
-            })
-
-    # add the course to the user's courses
-    # c.execute("UPDATE users SET Courses = ? WHERE Uuid = ?", (cur, uuid))
-    # conncateinate the course to the user's current courses and then update the database
-    c.execute("UPDATE users SET Courses = ? || Courses WHERE Uuid = ?", ((cur+','), uuid))
-    # concateinate the new course with a comma to the user
-    
-    conn.commit()
-    conn.close()
-
-    return jsonify({
-        'status': 200, 
-        'info':'ok' ,
-        'data': 
-            {
-                'uuid': uuid, 
-                'course': course
-            }
-        })
-        
         
         
 # SQLIte3 Database for courses collection        
@@ -220,37 +305,51 @@ def addcourse() -> str:
     author = request.args.get('author')
     rating = request.args.get('rating')
     
+    conn=sqlite3.connect('src/database/users.db')
+    c=conn.cursor()
+    
+    c.execute("INSERT INTO courses VALUES (?, ?, ?, ?)", ((title + ","), float(price), author, int(rating)))
+    conn.commit()
+    conn.close()
+    
+    # return a json object that has status code and the data added to the database
+    return jsonify({
+        'status': 200,
+        'info': 'ok',
+        'data': {
+            'title': title,
+            'price': price,
+            'author': author,
+            'rating': rating
+        }
+    })
+        
+@app.route('/getcourse', methods=['POST', 'GET'])
+def getcourse() -> str:
+    # link: http://localhost:8080/getcourse
+    
+    # returns all the courses in the database
+
     try:
         conn=sqlite3.connect('src/database/users.db')
         c=conn.cursor()
-        #c.execute("INSERT INTO courses VALUES (?, ?, ?, ?)", (title, price, author, rating))
-        c.execute("INSERT INTO courses VALUES (?, ?, ?, ?)", (title + ",", price, author, rating))
-        conn.commit()
+        cur = c.execute("SELECT * FROM courses").fetchall()
         conn.close()
         
+        # return a json object that has status code and the data added to the database
         return jsonify({
             'status': 200,
             'info': 'ok',
-            'data': {
-                'title': title,
-                'price': price,
-                'author': author,
-                'rating': rating
-            }
+            'data': cur
         })
-        
+
     except:
+        # just in case something goes wrong
         return jsonify({
             'status': 400,
             'info': 'err',
-            'data': {
-                'title': title,
-                'price': price,
-                'author': author,
-                'rating': rating
-            }
+            'data': None
         })
-
     
     
     

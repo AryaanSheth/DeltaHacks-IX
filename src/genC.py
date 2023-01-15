@@ -1,5 +1,4 @@
 from PIL import Image, ImageFont, ImageDraw 
-import pandas as pd
 empty_img = Image.open("BlankCert.png")
 # name = "Viransh Shah"
 # courseName = "Java Basics"
