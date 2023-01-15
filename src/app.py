@@ -3,6 +3,8 @@ import sqlite3
 import os
 from random import randint as r
 from flask_cors import CORS
+
+# import the certificate generator from aux folder
 import aux.OGgenC as OGgenC
 
 curdir = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +37,7 @@ def gencert() -> str:
     name = request.args.get('name')
     courseName = request.args.get('courseName')
     
+    # generate the certificate
     x = OGgenC.genCert(name, courseName)
 
     return jsonify({

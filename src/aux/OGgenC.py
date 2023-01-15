@@ -1,7 +1,9 @@
 from PIL import Image, ImageFont, ImageDraw 
 import pandas as pd
 import requests
-empty_img = Image.open("BlankCert.png")
+import os
+
+empty_img = os.path.join(os.path.dirname(__file__), "BlankCert.png")
 # name = "Viransh Shah"
 # courseName = "Java Basics"
 
