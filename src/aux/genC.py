@@ -3,7 +3,7 @@ empty_img = Image.open("BlankCert.png")
 # name = "Viransh Shah"
 # courseName = "Java Basics"
 
-def genCert(name, courseName):
+def genCert(name, courseName) -> str:
 
     font = ImageFont.truetype("DancingScript.ttf", 150)
 
